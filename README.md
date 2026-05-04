@@ -96,8 +96,33 @@ which builds each packet type (including the auth flavour of
 CONNECT) and compares the output against hand-computed reference
 bytes. A clean run prints `All OK.` and exits zero.
 
-To use the library in another project, drop [`mqtt.h`](mqtt.h) and
-[`mqtt.c`](mqtt.c) in alongside your other sources.
+To use the library in another project, drop [`mqtt.h`](mqtt.h),
+[`mqtt.c`](mqtt.c), and [`byte_stream.h`](byte_stream.h) in
+alongside your other sources.
+
+## Companion: `byte_stream.h`
+
+The library's byte-level writes go through a tiny header-only
+helper, [`byte_stream.h`](byte_stream.h), which provides
+`u8` / `u16` / `u32` (and signed variants) for both
+**big-endian** (network byte order) and **little-endian**
+stream formats, plus raw-byte and length-prefixed-string helpers:
+
+```c
+size_t  off = 0;
+uint8_t buf[64];
+
+bs_put_u8        (buf, &off, 0xAB);
+bs_put_u16_be    (buf, &off, 1234);             /* MQTT, NATS, ... */
+bs_put_u32_le    (buf, &off, 0xDEADBEEFu);      /* most file formats */
+bs_put_i32_be    (buf, &off, -1);               /* signed wrappers */
+bs_put_bytes     (buf, &off, "hello", 5);
+bs_put_str_u16_be(buf, &off, "topic", 5);       /* 2-byte length + text */
+```
+
+The header is `static inline` only — there is no `.c` to compile;
+include the header and the helpers vanish into your call sites at
+`-O2`. Drop it into any other C project that needs the same.
 
 ## Out of scope (intentional)
 
