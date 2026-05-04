@@ -4,7 +4,7 @@
 
 #include "mqtt.h"
 
-#include <string.h>
+#include "byte_stream.h"
 
 #define MQTT_KEEPALIVE_S    60
 #define MQTT_FLAG_CLEAN_SES 0x02
@@ -31,17 +31,6 @@ static int varint_size(uint32_t value)
     if (value < 2097152u)    return 3;
     if (value < 268435456u)  return 4;
     return 0;
-}
-
-/* Append a 16-bit-length-prefixed string at offset i. The caller has
- * already verified buf has room. Returns the new offset. */
-static size_t append_lp(uint8_t *buf, size_t i,
-                        const char *s, size_t s_len)
-{
-    buf[i++] = (uint8_t)((s_len >> 8) & 0xFFu);
-    buf[i++] = (uint8_t)( s_len       & 0xFFu);
-    if (s_len > 0) memcpy(&buf[i], s, s_len);
-    return i + s_len;
 }
 
 int mqtt_build_connect(uint8_t *buf, size_t buf_size,
@@ -97,21 +86,17 @@ int mqtt_build_connect(uint8_t *buf, size_t buf_size,
     if (total > buf_size) return 0;
 
     size_t i = 0;
-    buf[i++] = 0x10;                                       /* CONNECT */
+    bs_put_u8(buf, &i, 0x10);                                  /* CONNECT */
     i += (size_t)put_varint(&buf[i], (uint32_t)body_len);
 
-    buf[i++] = 0x00;                                       /* "MQTT" */
-    buf[i++] = 0x04;
-    buf[i++] = 'M'; buf[i++] = 'Q'; buf[i++] = 'T'; buf[i++] = 'T';
+    bs_put_str_u16_be(buf, &i, "MQTT", 4);                     /* proto name */
+    bs_put_u8(buf, &i, 0x04);                                  /* level 4 */
+    bs_put_u8(buf, &i, flags);
+    bs_put_u16_be(buf, &i, MQTT_KEEPALIVE_S);                  /* keepalive */
+    bs_put_str_u16_be(buf, &i, client_id, cid_len);
 
-    buf[i++] = 0x04;                                       /* level 4 */
-    buf[i++] = flags;                                      /* flags */
-    buf[i++] = 0x00;                                       /* keepalive */
-    buf[i++] = (uint8_t)MQTT_KEEPALIVE_S;
-
-    i = append_lp(buf, i, client_id, cid_len);
-    if (username != NULL) i = append_lp(buf, i, username, un_len);
-    if (password != NULL) i = append_lp(buf, i, password, pw_len);
+    if (username != NULL) bs_put_str_u16_be(buf, &i, username, un_len);
+    if (password != NULL) bs_put_str_u16_be(buf, &i, password, pw_len);
 
     return (int)i;
 }
@@ -140,15 +125,11 @@ int mqtt_build_publish(uint8_t *buf, size_t buf_size,
     if (total > buf_size) return 0;
 
     size_t i = 0;
-    buf[i++] = 0x30;                                       /* PUBLISH QoS 0 */
+    bs_put_u8(buf, &i, 0x30);                                  /* PUBLISH q0 */
     i += (size_t)put_varint(&buf[i], (uint32_t)body_len);
 
-    i = append_lp(buf, i, topic, topic_len);
-
-    if (payload_len > 0) {
-        memcpy(&buf[i], payload, payload_len);
-        i += payload_len;
-    }
+    bs_put_str_u16_be(buf, &i, topic, topic_len);
+    bs_put_bytes(buf, &i, payload, payload_len);
 
     return (int)i;
 }
@@ -169,9 +150,9 @@ int mqtt_build_subscribe(uint8_t *buf, size_t buf_size,
     }
 
     /* Body:
-     *   NN NN                    packet id
-     *   NN NN <topic>            topic filter (length-prefixed)
-     *   00                       requested QoS (0) */
+     *   NN NN                packet id
+     *   NN NN <topic>        topic filter (length-prefixed)
+     *   00                   requested QoS (0) */
     size_t body_len = 2u + 2u + topic_len + 1u;
     int    rl_size  = varint_size((uint32_t)body_len);
     if (rl_size == 0) return 0;
@@ -180,14 +161,12 @@ int mqtt_build_subscribe(uint8_t *buf, size_t buf_size,
     if (total > buf_size) return 0;
 
     size_t i = 0;
-    buf[i++] = 0x82;                                       /* SUBSCRIBE */
+    bs_put_u8(buf, &i, 0x82);                                  /* SUBSCRIBE */
     i += (size_t)put_varint(&buf[i], (uint32_t)body_len);
 
-    buf[i++] = (uint8_t)((packet_id >> 8) & 0xFFu);        /* packet id */
-    buf[i++] = (uint8_t)( packet_id       & 0xFFu);
-
-    i = append_lp(buf, i, topic, topic_len);
-    buf[i++] = 0x00;                                       /* QoS 0 */
+    bs_put_u16_be(buf, &i, packet_id);
+    bs_put_str_u16_be(buf, &i, topic, topic_len);
+    bs_put_u8(buf, &i, 0x00);                                  /* QoS 0 */
 
     return (int)i;
 }
@@ -207,9 +186,7 @@ int mqtt_build_unsubscribe(uint8_t *buf, size_t buf_size,
         return 0;
     }
 
-    /* Body:
-     *   NN NN                    packet id
-     *   NN NN <topic>            topic filter (length-prefixed) */
+    /* Body: packet id + length-prefixed topic. */
     size_t body_len = 2u + 2u + topic_len;
     int    rl_size  = varint_size((uint32_t)body_len);
     if (rl_size == 0) return 0;
@@ -218,13 +195,11 @@ int mqtt_build_unsubscribe(uint8_t *buf, size_t buf_size,
     if (total > buf_size) return 0;
 
     size_t i = 0;
-    buf[i++] = 0xA2;                                       /* UNSUBSCRIBE */
+    bs_put_u8(buf, &i, 0xA2);                                  /* UNSUBSCRIBE */
     i += (size_t)put_varint(&buf[i], (uint32_t)body_len);
 
-    buf[i++] = (uint8_t)((packet_id >> 8) & 0xFFu);
-    buf[i++] = (uint8_t)( packet_id       & 0xFFu);
-
-    i = append_lp(buf, i, topic, topic_len);
+    bs_put_u16_be(buf, &i, packet_id);
+    bs_put_str_u16_be(buf, &i, topic, topic_len);
 
     return (int)i;
 }
