@@ -1,0 +1,13 @@
+# build artefacts
+*.o
+*.a
+*.exe
+build_packets
+mqtt_demo
+
+# editors / OS
+.DS_Store
+*.swp
+*.swo
+.vscode/
+.idea/
