@@ -2,8 +2,10 @@
 *.o
 *.a
 *.exe
-build_packets
-mqtt_demo
+
+# per-module example / self-test binaries
+mqtt/build_packets
+ujson/ujson_demo
 
 # editors / OS
 .DS_Store
