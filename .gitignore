@@ -6,6 +6,9 @@
 # per-module example / self-test binaries
 mqtt/build_packets
 ujson/ujson_demo
+math/check
+byte_queue/check
+stepper/check
 
 # editors / OS
 .DS_Store

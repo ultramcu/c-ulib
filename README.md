@@ -9,22 +9,28 @@ third-party dependencies.
 
 | Module | What it does | Files |
 |---|---|---|
+| [`byte_queue`](byte_queue) | Caller-buffer-only byte ring queue (FIFO). Separate count field disambiguates full / empty so the queue uses every slot. | `byte_queue.h`, `byte_queue.c` |
 | [`byte_stream`](byte_stream) | Header-only helpers for sequential read/write of primitive types in a byte buffer. `u8`/`u16`/`u32` (BE + LE) plus signed wrappers and length-prefixed strings. | `byte_stream.h` |
+| [`math`](math) | Header-only integer helpers: `int_pow_i32`, `int_clamp_i32`, `int_min/max/abs_i32`. | `intmath.h` |
 | [`mqtt`](mqtt) | Minimal MQTT 3.1.1 client packet builder: CONNECT (with optional username/password), PUBLISH, SUBSCRIBE, UNSUBSCRIBE, PINGREQ, DISCONNECT. Caller-buffer only, no I/O. Uses `byte_stream`. | `mqtt.h`, `mqtt.c` (+ `byte_stream.h`) |
+| [`stepper`](stepper) | Step-motor position controller. STEP/DIR/EN pin callbacks, signed `int32_t` positions, multi-instance safe. | `stepper.h`, `stepper.c` |
 | [`ujson`](ujson) | Byte-fed JSON parser for one flat object per message. Quoted-string keys, string or int32 values, with lookup helpers (`ujson_get_str`, `ujson_get_int`, `ujson_value_eq`). | `ujson.h`, `ujson.c` |
 
 Each module's `README.md` has its full API and a build target. Run
-the per-module self-test from the module directory:
-
-```sh
-cd mqtt  &&  make test       # MQTT packet build self-test
-cd ujson &&  make test       # ujson demo
-```
-
-Or run them all from the top of the repo:
+all of them from the top of the repo:
 
 ```sh
 make test
+```
+
+Or one at a time from the module directory:
+
+```sh
+cd math       && make test     # intmath sanity check
+cd byte_queue && make test     # byte ring-queue self-test
+cd mqtt       && make test     # MQTT packet build self-test
+cd stepper    && make test     # stepper controller self-test
+cd ujson      && make test     # ujson demo
 ```
 
 ## Design rules
@@ -49,7 +55,7 @@ Two notes about cross-module deps:
 - `mqtt` includes `byte_stream.h`. If you take `mqtt`, take
   `byte_stream/byte_stream.h` along with it (and add an include
   path so `#include "byte_stream.h"` resolves).
-- `ujson` is fully standalone — no other module needed.
+- Every other module is fully standalone.
 
 ## License
 
