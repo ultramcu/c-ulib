@@ -9,6 +9,7 @@ ujson/ujson_demo
 math/check
 byte_queue/check
 stepper/check
+astro/check
 
 # editors / OS
 .DS_Store

@@ -7,7 +7,7 @@
 #   make test        build + run them
 #   make clean       drop every module's artefacts
 
-MODULES := math byte_queue mqtt stepper ujson
+MODULES := math byte_queue mqtt stepper ujson astro
 
 all:
 	@for m in $(MODULES); do \

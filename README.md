@@ -15,6 +15,7 @@ third-party dependencies.
 | [`mqtt`](mqtt) | Minimal MQTT 3.1.1 client packet builder: CONNECT (with optional username/password), PUBLISH, SUBSCRIBE, UNSUBSCRIBE, PINGREQ, DISCONNECT. Caller-buffer only, no I/O. Uses `byte_stream`. | `mqtt.h`, `mqtt.c` (+ `byte_stream.h`) |
 | [`stepper`](stepper) | Step-motor position controller. STEP/DIR/EN pin callbacks, signed `int32_t` positions, multi-instance safe. | `stepper.h`, `stepper.c` |
 | [`ujson`](ujson) | Byte-fed JSON parser for one flat object per message. Quoted-string keys, string or int32 values, with lookup helpers (`ujson_get_str`, `ujson_get_int`, `ujson_value_eq`). | `ujson.h`, `ujson.c` |
+| [`astro`](astro) | Minimal astronomy: HMS / DMS conversions, mean sidereal time (IAU 1982), and the equatorial-to-horizon transform. No precession or nutation; ~0.01° accuracy. Links with `-lm`. | `astro.h`, `astro.c` |
 
 Each module's `README.md` has its full API and a build target. Run
 all of them from the top of the repo:
@@ -31,6 +32,7 @@ cd byte_queue && make test     # byte ring-queue self-test
 cd mqtt       && make test     # MQTT packet build self-test
 cd stepper    && make test     # stepper controller self-test
 cd ujson      && make test     # ujson demo
+cd astro      && make test     # astro math self-test
 ```
 
 ## Design rules
