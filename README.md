@@ -16,6 +16,7 @@ third-party dependencies.
 | [`stepper`](stepper) | Step-motor position controller. STEP/DIR/EN pin callbacks, signed `int32_t` positions, multi-instance safe. | `stepper.h`, `stepper.c` |
 | [`ujson`](ujson) | Byte-fed JSON parser for one flat object per message. Quoted-string keys, string or int32 values, with lookup helpers (`ujson_get_str`, `ujson_get_int`, `ujson_value_eq`). | `ujson.h`, `ujson.c` |
 | [`astro`](astro) | Minimal astronomy: HMS / DMS conversions, mean sidereal time (IAU 1982), and the equatorial-to-horizon transform. No precession or nutation; ~0.01° accuracy. Links with `-lm`. | `astro.h`, `astro.c` |
+| [`nmea`](nmea) | Byte-fed NMEA 0183 parser for RMC / GGA / GSA. XOR-checksum verified, decoded lat / lon in signed degrees, signed timezone shift with leap-year and back-rollover. Links with `-lm`. | `nmea.h`, `nmea.c` |
 
 Each module's `README.md` has its full API and a build target. Run
 all of them from the top of the repo:
@@ -33,6 +34,7 @@ cd mqtt       && make test     # MQTT packet build self-test
 cd stepper    && make test     # stepper controller self-test
 cd ujson      && make test     # ujson demo
 cd astro      && make test     # astro math self-test
+cd nmea       && make test     # NMEA 0183 parser self-test
 ```
 
 ## Design rules

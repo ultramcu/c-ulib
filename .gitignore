@@ -10,6 +10,7 @@ math/check
 byte_queue/check
 stepper/check
 astro/check
+nmea/check
 
 # editors / OS
 .DS_Store
